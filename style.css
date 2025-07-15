@@ -1,57 +1,80 @@
-body {
-    font-family: sans-serif;
-    line-height: 1.6;
-    margin: 20px;
-    background-color: #f4f4f4;
-}
-h1, h2, h3 {
-    color: #333;
-}
-.container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-}
-.table-wrapper {
-    background: #fff;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    flex: 1;
-    min-width: 400px;
-}
-table {
+body, html {
+    margin: 0;
+    padding: 0;
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
+    height: 100%;
+    overflow: hidden; /* スクロールバーを非表示 */
+    cursor: none; /* デフォルトのカーソルを非表示 */
+    background-color: #f0f0f0;
+    font-family: sans-serif;
 }
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
+
+/* webgazerが自動生成するカメラ映像のスタイル */
+#webgazerVideoFeed {
+    position: fixed !important;
+    top: 20px !important;
+    left: 20px !important;
+    width: 120px !important;
+    height: 90px !important;
+    border-radius: 8px;
+    border: 2px solid #333;
+    z-index: 9999;
+}
+
+/* webgazerが自動生成する顔認識の枠線 */
+#webgazerFaceFeedbackBox {
+    border: 2px solid rgba(255, 68, 68, 0.7) !important;
+}
+
+/* 視線で動くカーソル */
+#gazeCursor {
+    position: fixed;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 150, 255, 0.7);
+    background-color: rgba(0, 150, 255, 0.2);
+    transition: transform 0.1s ease-out;
+    pointer-events: none; /* カーソル自体がクリックイベントを受け取らないようにする */
+    z-index: 10000;
+    transform: translate(-50%, -50%); /* 中央に配置 */
+}
+
+/* 操作パネル */
+#controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     text-align: center;
 }
-th {
-    background-color: #e9ecef;
-}
-tbody tr:nth-child(odd) {
-    background-color: #f8f9fa;
-}
-button {
-    font-size: 16px;
+
+#calibrateBtn {
     padding: 10px 20px;
-    cursor: pointer;
+    font-size: 16px;
     border: none;
     background-color: #007bff;
     color: white;
     border-radius: 5px;
-    margin-bottom: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
 }
-button:hover {
+
+#calibrateBtn:hover {
     background-color: #0056b3;
 }
-#finalResult.safe {
-    color: green;
+
+#calibrateBtn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
 }
-#finalResult.hacked {
-    color: red;
+
+#statusText {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
 }

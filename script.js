@@ -10,23 +10,29 @@ window.onload = function() {
     let currentPointIndex = 0;
     let faceMovementRange = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
     let isCalibrated = false;
-    let dataCollectionInterval = null; // データ収集用のインターバルID
+    let dataCollectionInterval = null;
 
-    // キャリブレーションで表示する点の位置 (画面の割合)
     const calibrationPoints = [
-        { x: 0.5, y: 0.5 }, // 中央
-        { x: 0.1, y: 0.1 }, // 左上
-        { x: 0.9, y: 0.1 }, // 右上
-        { x: 0.1, y: 0.9 }, // 左下
-        { x: 0.9, y: 0.9 }, // 右下
+        { x: 0.5, y: 0.5 }, { x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 },
+        { x: 0.1, y: 0.9 }, { x: 0.9, y: 0.9 },
     ];
 
     // WebGazerの初期化
     async function initializeWebGazer() {
         await webgazer.setGazeListener(handleGazeData).begin();
         webgazer.showVideo(true);
+
+        // --- 修正点 ---
+        // 1. 顔のメッシュ（水色の点々）を再表示します
+        webgazer.showFaceOverlay(true);
         webgazer.showFaceFeedbackBox(true);
-        webgazer.showFaceOverlay(false);
+
+        // 2. CSSによるズレを補正します
+        // スタイルシートで指定したサイズをJavaScript側でも明示的に設定することで、
+        // 追跡枠と映像のズレを解消します。
+        webgazer.setVideoViewerSize(120, 90);
+        // --- 修正ここまで ---
+
         statusText.textContent = 'カメラ準備完了。ボタンを押してキャリブレーションを開始してください。';
     }
 
@@ -43,7 +49,6 @@ window.onload = function() {
 
     // 数値をある範囲から別の範囲へマッピングする関数
     function mapValue(value, fromMin, fromMax, toMin, toMax) {
-        // fromの範囲が0の場合（点が1つしか記録されなかった場合など）のエラーを回避
         if (fromMax - fromMin === 0) {
             return (toMin + toMax) / 2;
         }
@@ -61,7 +66,7 @@ window.onload = function() {
         showNextCalibrationPoint();
     }
 
-    // ★★改善されたキャリブレーションポイント表示関数★★
+    // キャリブレーションポイント表示関数
     function showNextCalibrationPoint() {
         if (currentPointIndex >= calibrationPoints.length) {
             finishCalibration();
@@ -78,22 +83,19 @@ window.onload = function() {
 
         statusText.textContent = `キャリブレーション中 (${currentPointIndex + 1}/${calibrationPoints.length}): 赤い点を見て3秒間待ってください...`;
 
-        // --- 改善点：3秒間データを集め続ける ---
         let pointSamples = [];
-        clearInterval(dataCollectionInterval); // 前のインターバルをクリア
+        clearInterval(dataCollectionInterval);
         dataCollectionInterval = setInterval(() => {
             const facePrediction = webgazer.getCurrentFacePrediction();
             if (facePrediction) {
                 pointSamples.push(facePrediction);
             }
-        }, 100); // 100ミリ秒ごとに顔データを収集
+        }, 100);
 
-        // 3秒後にデータ処理
         setTimeout(() => {
-            clearInterval(dataCollectionInterval); // データ収集を停止
+            clearInterval(dataCollectionInterval);
 
             if (pointSamples.length > 0) {
-                // 収集したデータの平均値を計算
                 const avgX = pointSamples.reduce((sum, d) => sum + d.x, 0) / pointSamples.length;
                 const avgY = pointSamples.reduce((sum, d) => sum + d.y, 0) / pointSamples.length;
                 
@@ -101,13 +103,10 @@ window.onload = function() {
                     screen: { x: screenX, y: screenY },
                     face: { x: avgX, y: avgY }
                 });
-                console.log(`Point ${currentPointIndex + 1} calibrated.`);
-            } else {
-                console.warn(`Point ${currentPointIndex + 1} could not be calibrated (no face detected).`);
             }
             
             currentPointIndex++;
-            showNextCalibrationPoint(); // 次のポイントへ
+            showNextCalibrationPoint();
         }, 3000);
     }
     

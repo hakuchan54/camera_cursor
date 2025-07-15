@@ -1,81 +1,116 @@
 window.onload = function() {
+    // HTML要素の取得
     const calibrateBtn = document.getElementById('calibrateBtn');
     const statusText = document.getElementById('statusText');
     const gazeCursor = document.getElementById('gazeCursor');
+    const calibrationPoint = document.getElementById('calibrationPoint');
 
-    let initialFacePositionX = null;
-    let initialFacePositionY = null;
-    let isCalibrating = false;
+    // キャリブレーション関連の変数
+    let calibrationData = []; // { face: {x, y}, screen: {x, y} } の形式で保存
+    let currentPointIndex = 0;
+    let faceMovementRange = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+    let isCalibrated = false;
 
-    async function startWebGazer() {
-        webgazer.setVideoElementCanvas(
-            webgazer.getVideoElementCanvas()
-        );
+    // キャリブレーションで表示する点の位置 (画面の割合)
+    const calibrationPoints = [
+        { x: 0.5,  y: 0.5  }, // 中央
+        { x: 0.1,  y: 0.1  }, // 左上
+        { x: 0.9,  y: 0.1  }, // 右上
+        { x: 0.1,  y: 0.9  }, // 左下
+        { x: 0.9,  y: 0.9  }, // 右下
+    ];
 
-        webgazer.setFaceTracked(true); // 顔追跡を有効にする
-
-        webgazer.setGazeListener((data, elapsedTime) => {
-            if (data == null || !isCalibrating) {
-                return;
-            }
-
-            const currentFacePositionX = data.x;
-            const currentFacePositionY = data.y;
-
-            if (initialFacePositionX === null || initialFacePositionY === null) {
-                initialFacePositionX = currentFacePositionX;
-                initialFacePositionY = currentFacePositionY;
-                return;
-            }
-
-            // 顔の動きの感度を調整
-            const sensitivityX = 1.5;
-            const sensitivityY = 1.5;
-
-            // 顔の水平方向の移動量に応じてカーソルのX座標を更新
-            const deltaX = (currentFacePositionX - initialFacePositionX) * sensitivityX;
-            gazeCursor.style.left = `${window.innerWidth / 2 + deltaX}px`;
-
-            // 顔の垂直方向の移動量に応じてカーソルのY座標を更新
-            const deltaY = (currentFacePositionY - initialFacePositionY) * sensitivityY;
-            gazeCursor.style.top = `${window.innerHeight / 2 + deltaY}px`;
-        }).begin();
-
+    // WebGazerの初期化
+    async function initializeWebGazer() {
+        await webgazer.setGazeListener(handleGazeData).begin();
         webgazer.showVideo(true);
         webgazer.showFaceFeedbackBox(true);
-        webgazer.showFaceOverlay(false); // 顔のオーバーレイは不要なので非表示
-
+        webgazer.showFaceOverlay(false);
         statusText.textContent = 'カメラ準備完了。ボタンを押してキャリブレーションを開始してください。';
-        calibrateBtn.disabled = false;
     }
 
+    // WebGazerからのデータ処理
+    function handleGazeData(data, elapsedTime) {
+        if (!isCalibrated || data == null) return;
+        
+        // キャリブレーション結果を元にカーソル位置を計算
+        const cursorX = mapValue(data.x, faceMovementRange.minX, faceMovementRange.maxX, 0, window.innerWidth);
+        const cursorY = mapValue(data.y, faceMovementRange.minY, faceMovementRange.maxY, 0, window.innerHeight);
+
+        gazeCursor.style.left = `${cursorX}px`;
+        gazeCursor.style.top = `${cursorY}px`;
+    }
+
+    // 数値をある範囲から別の範囲へマッピングする関数
+    function mapValue(value, fromMin, fromMax, toMin, toMax) {
+        const normalized = (value - fromMin) / (fromMax - fromMin);
+        return toMin + normalized * (toMax - toMin);
+    }
+
+    // キャリブレーションの開始
     function startCalibration() {
+        isCalibrated = false;
         calibrateBtn.disabled = true;
-        isCalibrating = true;
-        initialFacePositionX = null;
-        initialFacePositionY = null;
-        let seconds = 5; // キャリブレーション時間を短縮
-
-        statusText.textContent = `キャリブレーション中... ${seconds}秒間、正面を向いてください。`;
-
-        const countdown = setInterval(() => {
-            seconds--;
-            statusText.textContent = `キャリブレーション中... 残り${seconds}秒`;
-            if (seconds <= 0) {
-                clearInterval(countdown);
-                finishCalibration();
-            }
-        }, 1000);
+        gazeCursor.style.display = 'none'; // キャリブレーション中はカーソルを非表示
+        calibrationData = [];
+        currentPointIndex = 0;
+        showNextCalibrationPoint();
     }
 
+    // 次のキャリブレーションポイントを表示
+    function showNextCalibrationPoint() {
+        if (currentPointIndex >= calibrationPoints.length) {
+            finishCalibration();
+            return;
+        }
+
+        const point = calibrationPoints[currentPointIndex];
+        const screenX = window.innerWidth * point.x;
+        const screenY = window.innerHeight * point.y;
+
+        calibrationPoint.style.left = `${screenX}px`;
+        calibrationPoint.style.top = `${screenY}px`;
+        calibrationPoint.classList.remove('hidden');
+
+        statusText.textContent = `キャリブレーション中 (${currentPointIndex + 1}/${calibrationPoints.length}): 赤い点を見て3秒間待ってください...`;
+
+        // 3秒後にデータを記録
+        setTimeout(() => {
+            const facePrediction = webgazer.getCurrentFacePrediction();
+            if (facePrediction) {
+                calibrationData.push({
+                    screen: { x: screenX, y: screenY },
+                    face: { x: facePrediction.x, y: facePrediction.y }
+                });
+            }
+            currentPointIndex++;
+            showNextCalibrationPoint();
+        }, 3000);
+    }
+    
+    // キャリブレーションの完了
     function finishCalibration() {
-        isCalibrating = false;
-        statusText.textContent = 'キャリブレーションが完了しました！顔の動きでカーソルを動かせます。';
+        calibrationPoint.classList.add('hidden');
+        statusText.textContent = 'キャリブレーション完了！顔を動かしてカーソルを操作してください。';
         calibrateBtn.disabled = false;
         calibrateBtn.textContent = '再キャリブレーション';
+
+        // 顔の動きの最小/最大範囲を計算
+        faceMovementRange = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        calibrationData.forEach(data => {
+            faceMovementRange.minX = Math.min(faceMovementRange.minX, data.face.x);
+            faceMovementRange.maxX = Math.max(faceMovementRange.maxX, data.face.x);
+            faceMovementRange.minY = Math.min(faceMovementRange.minY, data.face.y);
+            faceMovementRange.maxY = Math.max(faceMovementRange.maxY, data.face.y);
+        });
+
+        isCalibrated = true;
+        gazeCursor.style.display = 'block'; // カーソルを再表示
     }
 
+    // イベントリスナーの設定
     calibrateBtn.addEventListener('click', startCalibration);
 
-    startWebGazer();
+    // 初期化処理の実行
+    initializeWebGazer();
 };

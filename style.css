@@ -29,11 +29,10 @@ body, html {
 /* 視線で動くカーソル */
 #gazeCursor {
     position: fixed;
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    border: 2px solid rgba(0, 150, 255, 0.7);
-    background-color: rgba(0, 150, 255, 0.2);
+    background-color: rgba(255, 105, 180, 0.7); /* ピンク色に変更 */
     transition: transform 0.1s ease-out;
     pointer-events: none; /* カーソル自体がクリックイベントを受け取らないようにする */
     z-index: 10000;

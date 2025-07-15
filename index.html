@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BB84 プロトコル シミュレーション</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>BB84 プロトコル シミュレーション (盗聴あり)</h1>
+    <button id="runButton">シミュレーション実行</button>
+    <h2 id="finalResult">結果: </h2>
+
+    <div class="container">
+        <div class="table-wrapper">
+            <h3>アリス → イブ</h3>
+            <table id="aliceEveTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>アリスの基底</th>
+                        <th>アリスのBit</th>
+                        <th>送信偏光</th>
+                        <th>イブの基底</th>
+                        <th>受信Bit (イブ)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="table-wrapper">
+            <h3>イブ → ボブ</h3>
+            <table id="eveBobTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>偽装送信偏光</th>
+                        <th>ボブの基底</th>
+                        <th>受信Bit (ボブ)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div class="table-wrapper">
+            <h3>最終照合</h3>
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>A-B 基底合致</th>
+                        <th>判定</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

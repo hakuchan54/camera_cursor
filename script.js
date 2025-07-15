@@ -1,126 +1,62 @@
-document.getElementById('runButton').addEventListener('click', runSimulation);
+window.onload = function() {
+    // HTML要素の取得
+    const calibrateBtn = document.getElementById('calibrateBtn');
+    const statusText = document.getElementById('statusText');
+    const gazeCursor = document.getElementById('gazeCursor');
 
-function runSimulation() {
-    const BITS_COUNT = 14;
-    const bases = ['+', 'X'];
-    const polarizations = {
-        '+': { 0: '→', 1: '↑' },
-        'X': { 0: '╲', 1: '╱' }
-    };
-
-    let aliceData = [];
-    let eveData = [];
-    let bobData = [];
-    let results = [];
-
-    // 1. アリスが準備
-    for (let i = 0; i < BITS_COUNT; i++) {
-        const basis = bases[Math.floor(Math.random() * 2)];
-        const bit = Math.round(Math.random());
-        const polarization = polarizations[basis][bit];
-        aliceData.push({ id: i + 1, basis, bit, polarization });
-    }
-
-    // 2. イブが盗聴＆偽装
-    for (let i = 0; i < BITS_COUNT; i++) {
-        const eveBasis = bases[Math.floor(Math.random() * 2)];
-        let receivedBit;
+    // WebGazer.jsの初期設定と開始
+    async function startWebGazer() {
+        // カメラ映像を左上に表示する設定
+        webgazer.setVideoElementCanvas(
+            webgazer.getVideoElementCanvas()
+        );
         
-        // イブの受信
-        if (aliceData[i].basis === eveBasis) {
-            receivedBit = aliceData[i].bit; // 100%
-        } else {
-            receivedBit = Math.round(Math.random()); // 50%
-        }
+        // 視線予測のリスナーを設定
+        webgazer.setGazeListener((data, elapsedTime) => {
+            if (data == null) {
+                return;
+            }
+            // 視線データをカーソルの位置に反映
+            gazeCursor.style.left = `${data.x}px`;
+            gazeCursor.style.top = `${data.y}px`;
+        }).begin();
+
+        // UIのフィードバックを表示（カメラ映像、顔の枠線など）
+        webgazer.showVideo(true);
+        webgazer.showFaceFeedbackBox(true);
+        webgazer.showFaceOverlay(true);
+
+        statusText.textContent = 'カメラ準備完了。ボタンを押してキャリブレーションを開始してください。';
+    }
+
+    // キャリブレーション処理
+    function startCalibration() {
+        calibrateBtn.disabled = true; // ボタンを無効化
+        let seconds = 20; // キャリブレーション時間
         
-        const impersonatedPolarization = polarizations[eveBasis][receivedBit];
-        eveData.push({ id: i + 1, basis: eveBasis, bit: receivedBit, polarization: impersonatedPolarization });
-    }
+        statusText.textContent = `キャリブレーション中... ${seconds}秒間、画面の四隅や中央をゆっくりと見つめてください。`;
 
-    // 3. ボブが受信
-    for (let i = 0; i < BITS_COUNT; i++) {
-        const bobBasis = bases[Math.floor(Math.random() * 2)];
-        let receivedBit;
-        const receivedPolarization = eveData[i].polarization;
-
-        const isBasisCompatible = (bobBasis === '+' && (receivedPolarization === '↑' || receivedPolarization === '→')) ||
-                                (bobBasis === 'X' && (receivedPolarization === '╱' || receivedPolarization === '╲'));
-
-        if (isBasisCompatible) { // 100%
-            if (receivedPolarization === '↑' || receivedPolarization === '╱') {
-                receivedBit = 1;
-            } else {
-                receivedBit = 0;
+        // 20秒のカウントダウンタイマー
+        const countdown = setInterval(() => {
+            seconds--;
+            statusText.textContent = `キャリブレーション中... 残り${seconds}秒`;
+            if (seconds <= 0) {
+                clearInterval(countdown);
+                finishCalibration();
             }
-        } else { // 50%
-            receivedBit = Math.round(Math.random());
-        }
-        bobData.push({ id: i + 1, basis: bobBasis, bit: receivedBit });
+        }, 1000);
     }
 
-    // 4. 最終照合
-    let isHacked = false;
-    for (let i = 0; i < BITS_COUNT; i++) {
-        const basisMatch = aliceData[i].basis === bobData[i].basis;
-        let finalJudgement = '-';
-
-        if (basisMatch) {
-            if (aliceData[i].bit === bobData[i].bit) {
-                finalJudgement = '☑';
-            } else {
-                finalJudgement = '盗聴';
-                isHacked = true;
-            }
-        }
-        results.push({ id: i + 1, basisMatch: basisMatch ? '〇' : '-', judgement: finalJudgement });
-    }
-    
-    // 5. 結果を画面に表示
-    displayResults(aliceData, eveData, bobData, results, isHacked);
-}
-
-function displayResults(aliceData, eveData, bobData, results, isHacked) {
-    const aliceEveBody = document.querySelector("#aliceEveTable tbody");
-    const eveBobBody = document.querySelector("#eveBobTable tbody");
-    const resultBody = document.querySelector("#resultTable tbody");
-    
-    aliceEveBody.innerHTML = '';
-    eveBobBody.innerHTML = '';
-    resultBody.innerHTML = '';
-
-    for (let i = 0; i < aliceData.length; i++) {
-        aliceEveBody.innerHTML += `<tr>
-            <td>${aliceData[i].id}</td>
-            <td>${aliceData[i].basis}</td>
-            <td>${aliceData[i].bit}</td>
-            <td>${aliceData[i].polarization}</td>
-            <td>${eveData[i].basis}</td>
-            <td>${eveData[i].bit}</td>
-        </tr>`;
-
-        eveBobBody.innerHTML += `<tr>
-            <td>${eveData[i].id}</td>
-            <td>${eveData[i].polarization}</td>
-            <td>${bobData[i].basis}</td>
-            <td>${bobData[i].bit}</td>
-        </tr>`;
-
-        resultBody.innerHTML += `<tr>
-            <td>${results[i].id}</td>
-            <td>${results[i].basisMatch}</td>
-            <td>${results[i].judgement}</td>
-        </tr>`;
+    // キャリブレーション完了処理
+    function finishCalibration() {
+        statusText.textContent = 'キャリブレーションが完了しました！視線でカーソルを動かせます。';
+        calibrateBtn.disabled = false; // ボタンを再度有効化
+        calibrateBtn.textContent = '再キャリブレーション';
     }
 
-    const finalResultEl = document.getElementById('finalResult');
-    if (isHacked) {
-        finalResultEl.textContent = '結果: 盗聴';
-        finalResultEl.className = 'hacked';
-    } else {
-        finalResultEl.textContent = '結果: 安全';
-        finalResultEl.className = 'safe';
-    }
-}
+    // キャリブレーションボタンにクリックイベントを追加
+    calibrateBtn.addEventListener('click', startCalibration);
 
-// 初期表示のために一度実行
-runSimulation();
+    // WebGazerを開始
+    startWebGazer();
+};

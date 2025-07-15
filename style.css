@@ -3,13 +3,12 @@ body, html {
     padding: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden; /* スクロールバーを非表示 */
-    cursor: none; /* デフォルトのカーソルを非表示 */
+    overflow: hidden;
+    cursor: none;
     background-color: #f0f0f0;
     font-family: sans-serif;
 }
 
-/* webgazerが自動生成するカメラ映像のスタイル */
 #webgazerVideoFeed {
     position: fixed !important;
     top: 20px !important;
@@ -21,25 +20,43 @@ body, html {
     z-index: 9999;
 }
 
-/* webgazerが自動生成する顔認識の枠線 */
 #webgazerFaceFeedbackBox {
     border: 2px solid rgba(255, 68, 68, 0.7) !important;
 }
 
-/* 視線で動くカーソル */
 #gazeCursor {
     position: fixed;
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background-color: rgba(255, 105, 180, 0.7); /* ピンク色に変更 */
+    background-color: rgba(255, 105, 180, 0.7);
     transition: transform 0.1s ease-out;
-    pointer-events: none; /* カーソル自体がクリックイベントを受け取らないようにする */
+    pointer-events: none;
     z-index: 10000;
-    transform: translate(-50%, -50%); /* 中央に配置 */
+    transform: translate(-50%, -50%);
+    /* 最初は非表示にしておく */
+    display: none;
 }
 
-/* 操作パネル */
+/* キャリブレーション用の点 */
+#calibrationPoint {
+    position: fixed;
+    width: 30px;
+    height: 30px;
+    background-color: red;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    z-index: 10001;
+    transform: translate(-50%, -50%);
+    transition: all 0.5s ease-in-out;
+}
+
+/* 要素を非表示にするためのクラス */
+.hidden {
+    display: none !important;
+}
+
 #controls {
     position: fixed;
     bottom: 20px;
